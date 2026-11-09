@@ -1,24 +1,13 @@
 (() => {
-  // Mantém links diretos alinhados enquanto fontes e imagens alteram a altura da página.
-  let currentHash = location.hash;
-  let interacted = false;
-  ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(event => {
-    window.addEventListener(event, () => { interacted = true; }, {passive:true});
-  });
-  async function alignSection() {
-    const expectedHash = currentHash;
-    if (document.fonts) await document.fonts.ready;
-    if (interacted || location.hash !== expectedHash || !expectedHash) return;
-    const section = document.getElementById(decodeURIComponent(expectedHash.slice(1)));
-    if (section) section.scrollIntoView({behavior:'instant',block:'start'});
-  }
-  function stabilizeHash() {
-    interacted = false;
-    currentHash = location.hash;
-    alignSection();
-    [250, 700, 1400].forEach(delay => window.setTimeout(alignSection, delay));
-  }
-  window.addEventListener('hashchange', stabilizeHash);
-  if (document.readyState === 'complete') stabilizeHash();
-  else window.addEventListener('load', stabilizeHash, {once:true});
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');let interacted=false;
+ const align=(hash,smooth=false)=>{let section;try{section=document.getElementById(decodeURIComponent(hash.slice(1)))}catch{return}if(!section)return;
+  const title=section.querySelector('.eyebrow,h1,h2')||section,header=document.querySelector('.header');
+  scrollTo({top:Math.max(0,title.getBoundingClientRect().top+scrollY-(header?.offsetHeight||0)-24),behavior:smooth&&!reduced.matches?'smooth':'instant'});
+ };
+ document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(!a||a.getAttribute('href')==='#')return;e.preventDefault();const hash=a.getAttribute('href');history.pushState(null,'',hash);align(hash,true)});
+ ['pointerdown','wheel','touchstart','keydown'].forEach(name=>addEventListener(name,()=>{interacted=true},{passive:true}));
+ const initial=async()=>{if(!location.hash)return;const hash=location.hash;if(document.fonts)await document.fonts.ready;if(!interacted&&hash===location.hash)requestAnimationFrame(()=>align(hash))};
+ addEventListener('popstate',()=>align(location.hash));addEventListener('hashchange',()=>align(location.hash));
+ if(document.readyState==='complete')initial();else addEventListener('load',initial,{once:true});
 })();
+
